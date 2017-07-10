@@ -246,6 +246,13 @@ class Agent extends \MapasCulturais\Entity
      */
     protected $subsite;
 
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="unique_id", type="text", nullable=true)
+     */
+    protected $unique_id;
+
 
     /**
      * Constructor
@@ -454,6 +461,10 @@ class Agent extends \MapasCulturais\Entity
         }
     }
 
+    public function save($flush = false) {
+        $this->_createUniqueId();    
+        parent::save($flush);
+    }
 
     //============================================================= //
     // The following lines ara used by MapasCulturais hook system.
