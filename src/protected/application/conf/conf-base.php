@@ -80,20 +80,30 @@ return array(
 
     'app.verifiedSealsIds' => [1],
 
-    'app.dbUpdatesDisabled' => false,
+    'app.dbUpdatesDisabled' => false, // nao usa mais
     'app.defaultApiOutput' => 'json',
 
     'app.siteName' => \MapasCulturais\i::__('Mapas Culturais'),
     'app.siteDescription' => \MapasCulturais\i::__('O Mapas Culturais é uma plataforma livre para mapeamento cultural.'),
-
+	
+	// Para quem liberar a API?
     'api.accessControlAllowOrigin' => '*',
 
     'app.enableProjectRegistration' => true,
-
+	
+	// modo de manutenção
     'app.offline' => false,
+	
+	// url pra onde vai quando em manutenção
     'app.offlineUrl' => '/offline',
+	
+	// uma função q retorna true para bypassar a manutenção (ex: uma função q checa seu ip)
     'app.offlineBypassFunction' => null,
-
+	
+	/**
+	 * Entidades habilitadas
+	 * já dá pra fazer pelo painel do subsite e deve ser gerenciado por lá agora
+	 */
     'app.enabled.agents' => true,
     'app.enabled.spaces' => true,
     'app.enabled.projects' => true,
@@ -103,9 +113,13 @@ return array(
     'app.enabled.seals' => true,
     'app.enabled.apps' => true,
 
-    //'app.subsite.mainUrl' => 'mapas.mary',
-    'themes.active' => 'MapasCulturais\Themes\BaseV1',
-    'themes.active.debugParts' => true,
+    //'app.subsite.mainUrl' => 'mapas.mary', // verificar, mas não deve ser usado (talvez seja pra montar url de entidades com subsite_id null)
+    
+	// Tema ativo. Tb deve ser gerenciado agora pelo painel de config dos subsites
+	'themes.active' => 'MapasCulturais\Themes\BaseV1',
+    
+	 // imprime ou não comentarios HTML indicando quais templates estão sendo renderizados
+	'themes.active.debugParts' => true,
     'themes.assetManager' => new \MapasCulturais\AssetManagers\FileSystem(array(
         'publishPath' => BASE_PATH . $asset_dir,
 
@@ -116,7 +130,11 @@ return array(
         'process.css' => 'cp {IN} {OUT}', //'uglifycss {IN} > {OUT} && gzip -9 -c {OUT} > {OUT}.gz',
         'publishFolderCommand' => 'cp -R {IN} {PUBLISH_PATH}{FILENAME}'
     )),
-
+	
+	/**
+	 * Cores padrão
+	 * Hoje em dia tb deito pelo subsite admin
+	 */
     'themes.brand-space'        => '#e83f96',
     'themes.brand-project'      => '#cc0033',
     'themes.brand-opportunity'  => '#ffaa00',
@@ -126,7 +144,8 @@ return array(
     'themes.brand-agent'        => '#1dabc6',
     'themes.brand-intro'        => '#1c5690',
     'themes.brand-developer'    => '#9966cc',
-
+	
+	// ativar o geoCoding do Google. por padrão é o nominatm do OSM
     'app.useGoogleGeocode' => false,
 
     //    'maps.center' => array(-23.54894, -46.63882), // são paulo
@@ -155,9 +174,12 @@ return array(
      * inserir shapefiles aos bancos e cadastrá-los aqui
      *
      * coloque um underline "_" na frente do slug da division para
-     * que o metadado gerado não seja exibido na página de perfil da entidade.
+     * que o metadado gerado não seja exibido na página de perfil da entidade
+     * e nem exportado na planilha.
      *
-     * Ex: '_estado'        => \MapasCulturais\i::__('Estado'),
+     * showLayer define se a camada será exibida na exibição do Mapa no navegador.
+     *
+     * Ex: '_estado'        => ['name' => \MapasCulturais\i::__('Estado'), 'showLayer' => true]
      *
      */
     'app.geoDivisionsHierarchy' => [
@@ -280,7 +302,11 @@ return array(
     'app.log.assets' => false,
 
     /* ==================== CACHE ================== */
-    'app.cache' => function_exists('apcu_add') ?
+	
+	// pra desabilitar todos os caches
+	// 'app.cache' => new \Doctrine\Common\Cache\ArrayCache()
+	
+	'app.cache' => function_exists('apcu_add') ?
         new \Doctrine\Common\Cache\ApcuCache() :
         (
             function_exists('apc_add') ?
