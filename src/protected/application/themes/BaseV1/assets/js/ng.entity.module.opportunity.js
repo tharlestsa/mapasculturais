@@ -1,6 +1,6 @@
 (function (angular) {
     "use strict";
-    var module = angular.module('entity.module.opportunity', ['ngSanitize', 'checklist-model']);
+    var module = angular.module('entity.module.opportunity', ['ngSanitize', 'checklist-model','infinite-scroll']);
 
     module.config(['$httpProvider', function ($httpProvider) {
         $httpProvider.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=utf-8';
@@ -772,6 +772,13 @@ module.controller('RegistrationFieldsController', ['$scope', '$rootScope', '$int
     });
 
     function initEditables(){
+        var isDateSupported = function () {
+            var input = document.createElement('input');
+            var value = 'a';
+            input.setAttribute('type', 'date');
+            input.setAttribute('value', value);
+            return (input.value !== value);
+        };
         jQuery('.js-editable-field').each(function(){
             var field = fieldsByName[this.id];
             if(field && field.fieldOptions){
@@ -779,11 +786,31 @@ module.controller('RegistrationFieldsController', ['$scope', '$rootScope', '$int
                 cfg.source = field.fieldOptions.map(function(e){ return {value: e, text: e}; });
 
                 if(field.fieldType === "date"){
-                    cfg.datepicker = {weekStart: 1, yearRange: jQuery(this).data('yearrange') ? jQuery(this).data('yearrange') : "1900:+0"};
+                    if (isDateSupported()) {
+                        jQuery(this).removeAttr('data-showbuttons');
+                        jQuery(this).removeAttr('data-viewformat');
+                        cfg.display = function (value) {
+                            if(value){
+                                $(this).html(moment(value).format('DD/MM/YYYY'));
+                            }
+                        };
+                        cfg.tpl = '<input type="date" ></input>';
+                    }else {
+                        cfg.datepicker = {weekStart: 1, yearRange: jQuery(this).data('yearrange') ? jQuery(this).data('yearrange') : "1900:+0"};
+                    }
                 }
                 jQuery(this).editable(cfg);
             } else {
                 jQuery(this).editable();
+            }
+
+            if(field.fieldType === "date"){
+                if (isDateSupported()) {
+                    //Remove calendar icon
+                    jQuery(this).on('shown', function(){
+                        jQuery('.ui-datepicker-trigger').css('display', 'none');
+                    });
+                }
             }
 
             if(!jQuery(this).data('editable-init')){
@@ -793,7 +820,6 @@ module.controller('RegistrationFieldsController', ['$scope', '$rootScope', '$int
                         RegistrationService.save();
                     });
                 });
-
             }
         });
     }
@@ -900,9 +926,9 @@ module.controller('RegistrationFieldsController', ['$scope', '$rootScope', '$int
         if (field.fieldType === 'date') {
             return moment(value).format('DD-MM-YYYY');
         } else if (field.fieldType === 'url'){
-            return '<a href="' + value + '" target="_blank">' + value + '</a>';
+            return '<a href="' + value + '" target="_blank" rel="noopener noreferrer">' + value + '</a>';
         } else if (field.fieldType === 'email'){
-            return '<a href="mailto:' + value + '"  target="_blank">' + value + '</a>';
+            return '<a href="mailto:' + value + '"  target="_blank" rel="noopener noreferrer">' + value + '</a>';
         } else if (value instanceof Array) {
             return value.join(', ');
         } else {
@@ -2006,16 +2032,32 @@ module.controller('OpportunityController', ['$scope', '$rootScope', '$timeout', 
 
         var registrationsApi = new OpportunityApiService($scope, 'registrations', 'findRegistrations', {
             '@opportunity': getOpportunityId(),
-            '@limit': 10000,
+            '@limit': 50,
             '@select': 'id,singleUrl,owner.{id,name}'
         });
 
         var evaluationsApi = new OpportunityApiService($scope, 'evaluations', 'findEvaluations', {
             '@opportunity': getOpportunityId(),
-            '@limit': 10000,
+            '@limit': 50,
             '@select': 'id,singleUrl,category,owner.{id,name,singleUrl},consolidatedResult,evaluationResultString,status,'
         });
 
+
+        $scope.canCall = true; // variavel usada para nao dar "loop" na chamda da API, somente faz uma chamada apos a anterior ter terminada
+        $scope.loadMore = () => {
+            if(evaluationsApi.finish()){
+                return null;
+            }
+            if($scope.canCall) {
+                $scope.canCall = false;
+                registrationsApi.find().success(function(){
+                    $scope.canCall = true;  
+                    $scope.registrations = $scope.data.registrations;
+                });
+
+            }
+        };
+     
         registrationsApi.find().success(function(){
             $scope.registrations = $scope.data.registrations;
         });
